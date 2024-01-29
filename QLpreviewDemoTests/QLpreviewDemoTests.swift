@@ -8,29 +8,67 @@
 import XCTest
 @testable import QLpreviewDemo
 
-final class QLpreviewDemoTests: XCTestCase {
+class DocumentPreviewViewControllerTests: XCTestCase {
+    
+    var sut: DocumentPreviewViewController!
 
-    override func setUpWithError() throws {
-        // Put setup code here. This method is called before the invocation of each test method in the class.
+    override func setUp() {
+        super.setUp()
+        sut = DocumentPreviewViewController()
     }
 
-    override func tearDownWithError() throws {
-        // Put teardown code here. This method is called after the invocation of each test method in the class.
+    override func tearDown() {
+        sut = nil
+        super.tearDown()
     }
 
-    func testExample() throws {
-        // This is an example of a functional test case.
-        // Use XCTAssert and related functions to verify your tests produce the correct results.
-        // Any test you write for XCTest can be annotated as throws and async.
-        // Mark your test throws to produce an unexpected failure when your test encounters an uncaught error.
-        // Mark your test async to allow awaiting for asynchronous code to complete. Check the results with assertions afterwards.
+    // MARK: - Helper Methods
+    
+    func createMockDocumentURL() -> URL {
+        let documentsDirectoryURL = FileManager.default.urls(for: .documentDirectory, in: .userDomainMask).first!
+        return documentsDirectoryURL.appendingPathComponent("sample_form.pdf")
     }
 
-    func testPerformanceExample() throws {
-        // This is an example of a performance test case.
-        self.measure {
-            // Put the code you want to measure the time of here.
+    // MARK: - Test Cases
+    
+    func testDisplayLocalDocument() {
+        sut.displayLocalDocument(UIButton())
+        XCTAssertNotNil(sut.documentPreviewItem, "Local document preview item should not be nil after displaying a local document.")
+    }
+
+    func testDisplayDocumentFromURL() {
+        let expectation = self.expectation(description: "Download document expectation")
+
+        sut.displayDocumentFromURL(UIButton())
+
+        DispatchQueue.main.asyncAfter(deadline: .now() + 5) {
+            XCTAssertNotNil(self.sut.documentPreviewItem, "Document preview item should not be nil after displaying a document from URL.")
+            expectation.fulfill()
         }
+
+        waitForExpectations(timeout: 10, handler: nil)
     }
+
+    func testDownloadDocument() {
+        let expectation = self.expectation(description: "Download document expectation")
+
+        sut.downloadDocument { success, fileLocation in
+            XCTAssertTrue(success, "Document download should be successful.")
+            XCTAssertNotNil(fileLocation, "Document file location should not be nil.")
+            expectation.fulfill()
+        }
+
+        waitForExpectations(timeout: 10, handler: nil)
+    }
+
+    func testPresentPreviewController() {
+        sut.documentPreviewItem = createMockDocumentURL()
+        sut.presentPreviewController()
+
+        // Verify that a QLPreviewController is presented
+        XCTAssertTrue(sut.presentedViewController is QLPreviewController, "A QLPreviewController should be presented.")
+    }
+
+    // Add more test cases as needed
 
 }
